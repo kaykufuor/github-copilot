@@ -1,13 +1,51 @@
 import tkinter as tk
 
 
+class CalculatorLogic:
+    """Handles the underlying math logic and state for the calculator."""
+    def __init__(self) -> None:
+        self.expression = ""
+
+    def append(self, value: str) -> str:
+        if self.expression == "Error":
+            self.expression = ""
+        self.expression += str(value)
+        return self.expression
+
+    def clear(self) -> str:
+        self.expression = ""
+        return "0"
+
+    def calculate(self) -> str:
+        if not self.expression:
+            return "0"
+        try:
+            # Safely evaluate the math expression by restricting builtins and locals.
+            # Note: For a production app, consider a dedicated math parser (e.g., ast-based).
+            result = eval(self.expression, {"__builtins__": {}}, {})
+            
+            # Format nicely (remove trailing .0 for integers)
+            if isinstance(result, float) and result.is_integer():
+                result = int(result)
+                
+            self.expression = str(result)
+            return self.expression
+        except ZeroDivisionError:
+            self.expression = ""
+            return "Error"
+        except Exception:
+            self.expression = ""
+            return "Error"
+
+
 class CalculatorApp:
+    """Handles the graphical user interface for the calculator."""
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.root.title("Calculator")
         self.root.resizable(False, False)
 
-        self.expression = ""
+        self.logic = CalculatorLogic()
         self.display_var = tk.StringVar(value="0")
 
         self._build_ui()
@@ -26,22 +64,10 @@ class CalculatorApp:
         display.grid(row=0, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
 
         buttons = [
-            ("7", 1, 0),
-            ("8", 1, 1),
-            ("9", 1, 2),
-            ("/", 1, 3),
-            ("4", 2, 0),
-            ("5", 2, 1),
-            ("6", 2, 2),
-            ("*", 2, 3),
-            ("1", 3, 0),
-            ("2", 3, 1),
-            ("3", 3, 2),
-            ("-", 3, 3),
-            ("0", 4, 0),
-            ("=", 4, 1),
-            ("+", 4, 2),
-            ("C", 4, 3),
+            ("7", 1, 0), ("8", 1, 1), ("9", 1, 2), ("/", 1, 3),
+            ("4", 2, 0), ("5", 2, 1), ("6", 2, 2), ("*", 2, 3),
+            ("1", 3, 0), ("2", 3, 1), ("3", 3, 2), ("-", 3, 3),
+            ("0", 4, 0), ("=", 4, 1), ("+", 4, 2), ("C", 4, 3),
         ]
 
         for text, row, col in buttons:
@@ -66,27 +92,16 @@ class CalculatorApp:
             self.root.grid_columnconfigure(index, weight=1)
 
     def on_button_click(self, value: str) -> None:
-        if self.display_var.get() == "Error":
-            self.expression = ""
-
-        self.expression += value
-        self.display_var.set(self.expression)
+        new_display = self.logic.append(value)
+        self.display_var.set(new_display)
 
     def clear(self) -> None:
-        self.expression = ""
-        self.display_var.set("0")
+        new_display = self.logic.clear()
+        self.display_var.set(new_display)
 
     def calculate(self) -> None:
-        try:
-            result = eval(self.expression)
-            self.expression = str(result)
-            self.display_var.set(self.expression)
-        except ZeroDivisionError:
-            self.expression = ""
-            self.display_var.set("Error")
-        except Exception:
-            self.expression = ""
-            self.display_var.set("Error")
+        new_display = self.logic.calculate()
+        self.display_var.set(new_display)
 
 
 def main() -> None:
